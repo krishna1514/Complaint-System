@@ -71,8 +71,7 @@ export async function POST(req: NextRequest) {
     if (!authUser) return errorResponse("Unauthorized", 401);
 
     const body = await req.json();
-    const { title, description, category, location, attachments } =
-      body;
+    const { title, description, category, location, attachments } = body;
     let { department } = body;
 
     const priority = body.priority || detectPriority(title, description);
@@ -82,6 +81,8 @@ export async function POST(req: NextRequest) {
         "Title, description, category and location are required",
       );
     }
+
+    await connectDB();
 
     const existingDuplicate = await Complaint.findOne({
       submittedBy: authUser.id,
@@ -99,8 +100,6 @@ export async function POST(req: NextRequest) {
     if (!department) {
       department = suggestDepartment(title, description);
     }
-
-    await connectDB();
 
     const complaintId = await getNextComplaintId();
 
