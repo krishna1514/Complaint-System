@@ -11,6 +11,8 @@ import {
   Clock4,
   PlusCircle,
   Send,
+  Image as ImageIcon,
+  X,
 } from "lucide-react";
 import DashboardLayout from "@/components/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
@@ -52,13 +55,14 @@ const TYPE_ICON = {
   comment: MessageSquare,
 } as const;
 
-export default function ComplaintDetailed({ id }: {  id: string }) {
+export default function ComplaintDetailed({ id }: { id: string }) {
   const { complaint, loading, refresh } = useComplaint(id);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [posting, setPosting] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Fetch timeline and comments
   useEffect(() => {
@@ -68,8 +72,10 @@ export default function ComplaintDetailed({ id }: {  id: string }) {
         complaintsApi.getTimeline(id),
         complaintsApi.getComments(id),
       ]);
-      if (timelineRes.success && timelineRes.data) setTimeline(timelineRes.data.timeline);
-      if (commentsRes.success && commentsRes.data) setComments(commentsRes.data.comments);
+      if (timelineRes.success && timelineRes.data)
+        setTimeline(timelineRes.data.timeline);
+      if (commentsRes.success && commentsRes.data)
+        setComments(commentsRes.data.comments);
     };
     fetchExtras();
   }, [id]);
@@ -82,9 +88,9 @@ export default function ComplaintDetailed({ id }: {  id: string }) {
       setComments((prev) => [...prev, res.data!.comment]);
       setNewComment("");
       toast.success("Comment added");
-      // Also refresh timeline (new comment event)
       const timelineRes = await complaintsApi.getTimeline(id);
-      if (timelineRes.success && timelineRes.data) setTimeline(timelineRes.data.timeline);
+      if (timelineRes.success && timelineRes.data)
+        setTimeline(timelineRes.data.timeline);
     } else {
       toast.error(res.error ?? "Failed to add comment");
     }
@@ -98,9 +104,9 @@ export default function ComplaintDetailed({ id }: {  id: string }) {
     if (res.success) {
       toast.success(`Status updated to ${newStatus}`);
       refresh();
-      // Refresh timeline
       const timelineRes = await complaintsApi.getTimeline(id);
-      if (timelineRes.success && timelineRes.data) setTimeline(timelineRes.data.timeline);
+      if (timelineRes.success && timelineRes.data)
+        setTimeline(timelineRes.data.timeline);
     } else {
       toast.error(res.error ?? "Update failed");
     }
@@ -120,11 +126,43 @@ export default function ComplaintDetailed({ id }: {  id: string }) {
 
   if (!complaint) return <NotFound />;
 
+  const attachments = complaint.attachments || [];
+
   return (
     <DashboardLayout>
       <div className="mx-auto w-full max-w-6xl space-y-6">
+        {/* Image Lightbox Modal */}
+        <Dialog
+          open={!!selectedImage}
+          onOpenChange={() => setSelectedImage(null)}
+        >
+          <DialogContent className="max-w-4xl p-0 bg-black/90 border-none">
+            {selectedImage && (
+              <div className="relative">
+                <img
+                  src={selectedImage}
+                  alt="Full size"
+                  className="w-full h-auto max-h-[80vh] object-contain"
+                />
+                <button
+                  onClick={() => setSelectedImage(null)}
+                  className="absolute top-2 right-2 bg-black/50 rounded-full p-1 text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Header */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Button asChild variant="ghost" size="sm" className="h-8 -ml-2 gap-1.5">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="h-8 -ml-2 gap-1.5"
+          >
             <Link href="/dashboard/complaints">
               <ArrowLeft className="h-4 w-4" />
               Back
@@ -136,7 +174,9 @@ export default function ComplaintDetailed({ id }: {  id: string }) {
 
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight">{complaint.title}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {complaint.title}
+            </h1>
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={complaint.status} />
               <PriorityBadge priority={complaint.priority} />
@@ -190,9 +230,29 @@ export default function ComplaintDetailed({ id }: {  id: string }) {
                 <CardTitle className="text-base">Description</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-relaxed text-foreground/90">{complaint.description}</p>
+                <p className="text-sm leading-relaxed text-foreground/90">
+                  {complaint.description}
+                </p>
               </CardContent>
             </Card>
+
+            {/* Image Gallery Section */}
+            {attachments.map((url, idx) => (
+              <div
+                key={idx}
+                className="relative group cursor-pointer rounded-md overflow-hidden border bg-muted aspect-square"
+                onClick={() => setSelectedImage(url)}
+              >
+                <img
+                  src={url}
+                  alt={`Attachment ${idx + 1}`}
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                  <ImageIcon className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            ))}
 
             <Card>
               <CardHeader className="pb-3">
@@ -210,13 +270,19 @@ export default function ComplaintDetailed({ id }: {  id: string }) {
                         </div>
                         <div className="flex-1 pt-0.5">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-medium text-foreground">{event.title}</p>
+                            <p className="text-sm font-medium text-foreground">
+                              {event.title}
+                            </p>
                             <span className="text-xs text-muted-foreground tabular-nums">
                               {formatDateTime(event.timestamp)}
                             </span>
                           </div>
-                          <p className="mt-0.5 text-sm text-muted-foreground">{event.description}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">by {event.actor}</p>
+                          <p className="mt-0.5 text-sm text-muted-foreground">
+                            {event.description}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            by {event.actor}
+                          </p>
                         </div>
                       </div>
                     );
@@ -226,7 +292,9 @@ export default function ComplaintDetailed({ id }: {  id: string }) {
                 <Separator className="my-6" />
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">Add a comment</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Add a comment
+                  </label>
                   <Textarea
                     placeholder="Write an update for the team…"
                     className="min-h-[80px] resize-none"
@@ -234,7 +302,11 @@ export default function ComplaintDetailed({ id }: {  id: string }) {
                     onChange={(e) => setNewComment(e.target.value)}
                   />
                   <div className="flex justify-end">
-                    <Button size="sm" onClick={handleAddComment} disabled={posting || !newComment.trim()}>
+                    <Button
+                      size="sm"
+                      onClick={handleAddComment}
+                      disabled={posting || !newComment.trim()}
+                    >
                       <Send className="mr-1 h-3 w-3" />
                       {posting ? "Posting..." : "Post update"}
                     </Button>
@@ -249,27 +321,57 @@ export default function ComplaintDetailed({ id }: {  id: string }) {
               <CardTitle className="text-base">Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
-              <DetailRow icon={Building2} label="Department" value={complaint.department} />
-              <DetailRow icon={MapPin} label="Location" value={complaint.location} />
+              <DetailRow
+                icon={Building2}
+                label="Department"
+                value={complaint.department}
+              />
+              <DetailRow
+                icon={MapPin}
+                label="Location"
+                value={complaint.location}
+              />
               <DetailRow
                 icon={User}
                 label="Submitted by"
-                value={typeof complaint.submittedBy === "object" ? complaint.submittedBy.name : complaint.submittedBy}
+                value={
+                  typeof complaint.submittedBy === "object"
+                    ? complaint.submittedBy.name
+                    : complaint.submittedBy
+                }
               />
               <DetailRow
                 icon={User}
                 label="Assigned to"
-                value={complaint.assignedTo ? (typeof complaint.assignedTo === "object" ? complaint.assignedTo.name : complaint.assignedTo) : "Unassigned"}
+                value={
+                  complaint.assignedTo
+                    ? typeof complaint.assignedTo === "object"
+                      ? complaint.assignedTo.name
+                      : complaint.assignedTo
+                    : "Unassigned"
+                }
               />
-              <DetailRow icon={Calendar} label="Submitted" value={formatDateTime(complaint.createdAt)} />
+              <DetailRow
+                icon={Calendar}
+                label="Submitted"
+                value={formatDateTime(complaint.createdAt)}
+              />
               <Separator />
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Category</p>
-                <p className="mt-1 text-sm text-foreground">{complaint.category}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Category
+                </p>
+                <p className="mt-1 text-sm text-foreground">
+                  {complaint.category}
+                </p>
               </div>
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Priority</p>
-                <p className="mt-1 text-sm text-foreground">{complaint.priority}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Priority
+                </p>
+                <p className="mt-1 text-sm text-foreground">
+                  {complaint.priority}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -279,7 +381,15 @@ export default function ComplaintDetailed({ id }: {  id: string }) {
   );
 }
 
-function DetailRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function DetailRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="flex items-start gap-3">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
@@ -287,7 +397,9 @@ function DetailRow({ icon: Icon, label, value }: { icon: any; label: string; val
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="truncate text-sm font-medium text-foreground">{value}</p>
+        <p className="truncate text-sm font-medium text-foreground">
+          {value || "—"}
+        </p>
       </div>
     </div>
   );

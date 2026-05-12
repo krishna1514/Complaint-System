@@ -25,9 +25,7 @@ export default function RootLayout({
     <html lang="en" className={cn(balooBhaijaan2.className)}>
       <body className="min-h-full flex flex-col">
         <AuthProvider>
-          <TooltipProvider>
-            {children}
-            </TooltipProvider>
+          <TooltipProvider>{children}</TooltipProvider>
           <Toaster />
         </AuthProvider>
       </body>

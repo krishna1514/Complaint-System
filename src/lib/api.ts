@@ -139,6 +139,15 @@ export const complaintsApi = {
     }),
 };
 
+export const uploadApi = {
+  upload: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetch("/api/upload", { method: "POST", body: formData, credentials: "include" }).then(res => res.json());
+  },
+};
+
+
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 export const adminApi = {

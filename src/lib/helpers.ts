@@ -6,14 +6,14 @@ import { ApiResponse, Department, Priority } from "@/types";
 export function successResponse<T>(
   data: T,
   message?: string,
-  status = 200
+  status = 200,
 ): NextResponse<ApiResponse<T>> {
   return NextResponse.json({ success: true, message, data }, { status });
 }
 
 export function errorResponse(
   error: string,
-  status = 400
+  status = 400,
 ): NextResponse<ApiResponse> {
   return NextResponse.json({ success: false, error }, { status });
 }
@@ -27,31 +27,88 @@ export function generateComplaintId(sequence: number): string {
 
 // ─── Smart Department Router ──────────────────────────────────────────────────
 
-const DEPARTMENT_KEYWORDS: Record<Department, string[]> = {
+export const DEPARTMENT_KEYWORDS: Record<Department, string[]> = {
   IT: [
-    "wifi", "network", "server", "laptop", "computer", "internet",
-    "system", "software", "hardware", "printer", "cable", "router",
-    "password", "login", "email", "database",
+    "wifi",
+    "network",
+    "server",
+    "laptop",
+    "computer",
+    "internet",
+    "system",
+    "software",
+    "hardware",
+    "printer",
+    "cable",
+    "router",
+    "password",
+    "login",
+    "email",
+    "database",
   ],
   Electrical: [
-    "light", "fan", "ac", "air conditioner", "electricity", "power",
-    "socket", "switch", "wiring", "bulb", "tube", "generator",
-    "electric", "short circuit", "voltage",
+    "light",
+    "fan",
+    "ac",
+    "air conditioner",
+    "electricity",
+    "power",
+    "socket",
+    "switch",
+    "wiring",
+    "bulb",
+    "tube",
+    "generator",
+    "electric",
+    "short circuit",
+    "voltage",
   ],
   Maintenance: [
-    "furniture", "leak", "tap", "water", "pipe", "door", "window",
-    "wall", "ceiling", "floor", "chair", "table", "desk", "broken",
-    "repair", "fix", "damage", "crack", "plumbing",
+    "furniture",
+    "leak",
+    "tap",
+    "water",
+    "pipe",
+    "door",
+    "window",
+    "wall",
+    "ceiling",
+    "floor",
+    "chair",
+    "table",
+    "desk",
+    "broken",
+    "repair",
+    "fix",
+    "damage",
+    "crack",
+    "plumbing",
   ],
   Cleaning: [
-    "trash", "washroom", "smell", "garbage", "dirty", "clean",
-    "waste", "toilet", "bathroom", "hygiene", "pest", "cockroach",
-    "rat", "insect", "dust", "sweep",
+    "trash",
+    "washroom",
+    "smell",
+    "garbage",
+    "dirty",
+    "clean",
+    "waste",
+    "toilet",
+    "bathroom",
+    "hygiene",
+    "pest",
+    "cockroach",
+    "rat",
+    "insect",
+    "dust",
+    "sweep",
   ],
   General: [],
 };
 
-export function suggestDepartment(title: string, description: string): Department {
+export function suggestDepartment(
+  title: string,
+  description: string,
+): Department {
   const text = `${title} ${description}`.toLowerCase();
 
   let bestDept: Department = "General";
@@ -59,7 +116,10 @@ export function suggestDepartment(title: string, description: string): Departmen
 
   for (const [dept, keywords] of Object.entries(DEPARTMENT_KEYWORDS)) {
     if (dept === "General") continue;
-    const score = keywords.reduce((acc, kw) => acc + (text.includes(kw) ? 1 : 0), 0);
+    const score = keywords.reduce(
+      (acc, kw) => acc + (text.includes(kw) ? 1 : 0),
+      0,
+    );
     if (score > highestScore) {
       highestScore = score;
       bestDept = dept as Department;
@@ -81,7 +141,7 @@ export function validatePassword(password: string): string | null {
 }
 
 export function validateRequired(
-  fields: Record<string, unknown>
+  fields: Record<string, unknown>,
 ): string | null {
   for (const [key, value] of Object.entries(fields)) {
     if (!value && value !== 0) return `${key} is required`;
@@ -113,10 +173,18 @@ export function paginationMeta(total: number, page: number, limit: number) {
 
 export function detectPriority(title: string, description: string): Priority {
   const text = `${title} ${description}`.toLowerCase();
-  const urgentKeywords = ["urgent", "asap", "emergency", "critical", "fire", "danger", "immediate"];
+  const urgentKeywords = [
+    "urgent",
+    "asap",
+    "emergency",
+    "critical",
+    "fire",
+    "danger",
+    "immediate",
+  ];
   const highKeywords = ["broken", "not working", "outage", "failure", "severe"];
 
-  if (urgentKeywords.some(kw => text.includes(kw))) return "Urgent";
-  if (highKeywords.some(kw => text.includes(kw))) return "High";
+  if (urgentKeywords.some((kw) => text.includes(kw))) return "Urgent";
+  if (highKeywords.some((kw) => text.includes(kw))) return "High";
   return "Medium"; // default
-}
+} 
