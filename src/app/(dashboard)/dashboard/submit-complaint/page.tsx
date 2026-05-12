@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Sparkles, Send, CheckCircle2, Upload, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -102,6 +102,12 @@ export default function SubmitComplaints() {
     }
     return null;
   };
+
+  useEffect(() => {
+    if (suggestedDept && !department) {
+      setDepartment(suggestedDept);
+    }
+  }, [suggestedDept, department]);
 
   const handleImagesSelected = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -277,10 +283,7 @@ export default function SubmitComplaints() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Department *</Label>
-                    <Select
-                      value={department || suggestedDept || ""}
-                      onValueChange={setDepartment}
-                    >
+                    <Select value={department} onValueChange={setDepartment}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select department" />
                       </SelectTrigger>
